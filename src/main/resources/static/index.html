@@ -2,79 +2,153 @@
 <html>
 <head>
     <title>WebSocket Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; }
-        #chat { width: 400px; margin: 20px auto; }
-        #messages { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; }
-        #messageInput { width: 300px; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        #login, #chat {
+            width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        #login h1, #chat h2 {
+            text-align: center;
+        }
+        #messages {
+            border: 1px solid #ddd;
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f9f9f9;
+            margin-bottom: 10px;
+        }
+        input[type="text"], input[type="password"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 3px;
+            background: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #218838;
+        }
+        #chat {
+            display: none;
+        }
     </style>
 </head>
 <body>
+<!-- 로그인 화면 -->
+<div id="login">
+    <h1>Login</h1>
+    <input id="username" type="text" placeholder="Username" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+</div>
+
+<!-- 채팅 화면 -->
 <div id="chat">
     <h2>Chat Room</h2>
     <div id="messages"></div>
-    <input id="username" type="text" placeholder="Enter your name" />
     <input id="messageInput" type="text" placeholder="Type your message" />
     <button onclick="sendMessage()">Send</button>
+    <button onclick="logout()">Logout</button>
 </div>
+
 <script>
     let stompClient = null;
-    const roomId = "room1"; // 채팅방 ID
-    const messagesDiv = document.getElementById("messages");
-    const usernameInput = document.getElementById("username");
+    const roomId = "room1";
 
-    // WebSocket 연결
-    function connect() {
-        const socket = new SockJS('/ws');
-        stompClient = Stomp.over(socket);
-        stompClient.connect({}, function (frame) {
-            console.log('Connected: ' + frame);
+    document.addEventListener("DOMContentLoaded", function () {
+        function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
 
-            // 메시지 구독
-            stompClient.subscribe(`/topic/${roomId}`, function (message) {
-                const msg = JSON.parse(message.body);
-                showMessage(msg.sender, msg.content);
-            });
-
-            // 사용자 입장 알림
-            const username = usernameInput.value || "Anonymous";
-            stompClient.send("/app/chat.newUser", {}, JSON.stringify({
-                sender: username,
-                roomId: roomId,
-                type: "JOIN",
-                content: `${username} has joined the chat!`
-            }));
-        });
-    }
-
-    // 메시지 전송
-    function sendMessage() {
-        const messageInput = document.getElementById("messageInput");
-        const username = usernameInput.value || "Anonymous";
-        const message = messageInput.value;
-
-        if (stompClient && message.trim() !== "") {
-            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify({
-                sender: username,
-                roomId: roomId,
-                type: "CHAT",
-                content: message
-            }));
-            messageInput.value = ""; // 입력란 초기화
+            axios.post('/auth/login', { username, password })
+                .then(response => {
+                    alert(response.data);
+                    document.getElementById("login").style.display = "none";
+                    document.getElementById("chat").style.display = "block";
+                    connectToChat(username);
+                })
+                .catch(error => alert(error.response.data));
         }
-    }
 
-    // 메시지 표시
-    function showMessage(sender, content) {
-        const messageElement = document.createElement("div");
-        messageElement.textContent = `${sender}: ${content}`;
-        messagesDiv.appendChild(messageElement);
-    }
+        function connectToChat(username) {
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function () {
+                stompClient.subscribe(`/topic/${roomId}`, function (message) {
+                    const msg = JSON.parse(message.body);
+                    showMessage(msg.sender, msg.content);
+                });
 
-    // 연결 초기화
-    connect();
+                stompClient.send("/app/chat.newUser", {}, JSON.stringify({
+                    sender: username,
+                    roomId: roomId,
+                    type: "JOIN",
+                    content: `${username} has joined the chat!`
+                }));
+            });
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById("messageInput");
+            const content = messageInput.value;
+            const username = document.getElementById("username").value;
+
+            if (content.trim() !== "") {
+                stompClient.send("/app/chat.sendMessage", {}, JSON.stringify({
+                    sender: username,
+                    roomId: roomId,
+                    type: "CHAT",
+                    content: content
+                }));
+                messageInput.value = "";
+            }
+        }
+
+        function showMessage(sender, content) {
+            const messagesDiv = document.getElementById("messages");
+            const messageElement = document.createElement("div");
+            messageElement.textContent = `${sender}: ${content}`;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function logout() {
+            axios.post('/auth/logout')
+                .then(response => {
+                    alert(response.data);
+                    stompClient.disconnect();
+                    document.getElementById("chat").style.display = "none";
+                    document.getElementById("login").style.display = "block";
+                });
+        }
+
+        // 연결 버튼에 이벤트 연결
+        window.login = login;
+        window.sendMessage = sendMessage;
+        window.logout = logout;
+    });
 </script>
 </body>
 </html>
