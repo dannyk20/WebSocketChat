@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #chat { width: 400px; margin: 20px auto; }
+        #messages { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; }
+        #messageInput { width: 300px; }
+    </style>
+</head>
+<body>
+<div id="chat">
+    <h2>Chat Room</h2>
+    <div id="messages"></div>
+    <input id="username" type="text" placeholder="Enter your name" />
+    <input id="messageInput" type="text" placeholder="Type your message" />
+    <button onclick="sendMessage()">Send</button>
+</div>
+<script>
+    let stompClient = null;
+    const roomId = "room1"; // 채팅방 ID
+    const messagesDiv = document.getElementById("messages");
+    const usernameInput = document.getElementById("username");
+
+    // WebSocket 연결
+    function connect() {
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+
+            // 메시지 구독
+            stompClient.subscribe(`/topic/${roomId}`, function (message) {
+                const msg = JSON.parse(message.body);
+                showMessage(msg.sender, msg.content);
+            });
+
+            // 사용자 입장 알림
+            const username = usernameInput.value || "Anonymous";
+            stompClient.send("/app/chat.newUser", {}, JSON.stringify({
+                sender: username,
+                roomId: roomId,
+                type: "JOIN",
+                content: `${username} has joined the chat!`
+            }));
+        });
+    }
+
+    // 메시지 전송
+    function sendMessage() {
+        const messageInput = document.getElementById("messageInput");
+        const username = usernameInput.value || "Anonymous";
+        const message = messageInput.value;
+
+        if (stompClient && message.trim() !== "") {
+            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify({
+                sender: username,
+                roomId: roomId,
+                type: "CHAT",
+                content: message
+            }));
+            messageInput.value = ""; // 입력란 초기화
+        }
+    }
+
+    // 메시지 표시
+    function showMessage(sender, content) {
+        const messageElement = document.createElement("div");
+        messageElement.textContent = `${sender}: ${content}`;
+        messagesDiv.appendChild(messageElement);
+    }
+
+    // 연결 초기화
+    connect();
+</script>
+</body>
+</html>
