@@ -16,19 +16,19 @@ public class ChatRoom {
         this.id = id;
     }
 
-    public boolean addUser (String username) {
-        if(users.size()>=2){
-            return false;
+    public boolean isFull() {
+        return users.size() >= 2; // 방에 최대 2명만 허용
+    }
+
+    public boolean addUser(String username) {
+        if (isFull()) {
+            return false; // 방이 가득 찼음
         }
         return users.add(username);
     }
 
     public void removeUser(String username) {
         users.remove(username);
-    }
-
-    public boolean isFull() {
-        return users.size() >= 2;
     }
 
     public boolean isEmpty() {
