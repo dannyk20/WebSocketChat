@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Collection;
 
 @Service
 public class ChatRoomManager {
@@ -22,5 +23,9 @@ public class ChatRoomManager {
 
     public void deleteRoom(String roomId) {
         chatRooms.remove(roomId);
+    }
+
+    public Collection<ChatRoom> getChatRooms() {
+        return chatRooms.values(); // 활성화된 방 목록 반환
     }
 }

@@ -2,6 +2,7 @@ package com.dannyk20.wschat.controller;
 
 import com.dannyk20.wschat.model.ChatRoom;
 import com.dannyk20.wschat.service.ChatRoomManager;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
@@ -14,6 +15,12 @@ public class ChatRoomController {
 
     public ChatRoomController(ChatRoomManager chatRoomManager) {
         this.chatRoomManager = chatRoomManager;
+    }
+
+    @GetMapping("/rooms")
+    public Collection<ChatRoom> getChatRooms() {
+        System.out.println("print chat room lists.");
+        return chatRoomManager.getChatRooms();
     }
 
     @PostMapping("/rooms")
