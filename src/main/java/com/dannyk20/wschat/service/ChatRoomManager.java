@@ -1,13 +1,12 @@
 package com.dannyk20.wschat.service;
 
 import com.dannyk20.wschat.model.ChatRoom;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-@Component
+@Service
 public class ChatRoomManager {
     private final Map<String, ChatRoom> chatRooms = new HashMap<>();
 
@@ -23,9 +22,5 @@ public class ChatRoomManager {
 
     public void deleteRoom(String roomId) {
         chatRooms.remove(roomId);
-    }
-
-    public Collection<ChatRoom> getChatRooms() {
-        return chatRooms.values();
     }
 }

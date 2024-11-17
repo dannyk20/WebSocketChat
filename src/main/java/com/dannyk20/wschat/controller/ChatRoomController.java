@@ -21,11 +21,6 @@ public class ChatRoomController {
         return chatRoomManager.createRoom(roomId);
     }
 
-    @GetMapping("/rooms")
-    public Collection<ChatRoom> getRooms() {
-        return chatRoomManager.getChatRooms();
-    }
-
     @DeleteMapping("/rooms/{roomId}")
     public void deleteRoom(@PathVariable String roomId) {
         chatRoomManager.deleteRoom(roomId);

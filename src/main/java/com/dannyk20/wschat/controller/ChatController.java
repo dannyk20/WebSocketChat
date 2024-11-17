@@ -18,20 +18,46 @@ public class ChatController {
         this.chatRoomManager = chatRoomManager;
     }
 
+    @MessageMapping("/chat.joinRoom")
+    public void joinRoom(ChatMessage message) {
+        String roomId = message.getRoomId();
+        String username = message.getSender();
+
+        ChatRoom room = chatRoomManager.getRoom(roomId);
+        if (room == null) {
+            room=chatRoomManager.createRoom(roomId);
+        }
+
+        if(room.isEmpty()){
+            messagingTemplate.convertAndSendToUser(username, "/queue/errors", "Room is full");
+            return;
+        }
+
+        message.setType(ChatMessage.MessageType.JOIN);
+        message.setContent(username + " has joined the room.");
+        messagingTemplate.convertAndSend("/queue/" + roomId, message);
+    }
+    
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(ChatMessage message) {
-        messagingTemplate.convertAndSend("/topic/" + message.getRoomId(), message);
+        String roomId = message.getRoomId();
+        messagingTemplate.convertAndSend("/queue/" + roomId, message);
     }
 
-    @MessageMapping("/chat.newUser")
-    public void newUser(ChatMessage message) {
-        ChatRoom room = chatRoomManager.getRoom(message.getRoomId());
-        if (room == null) {
-            room = chatRoomManager.createRoom(message.getRoomId());
+    @MessageMapping("/chat.leaveRoom")
+    public void leaveRoom(ChatMessage message) {
+        String roomId = message.getRoomId();
+        String username = message.getSender();
+
+        ChatRoom room = chatRoomManager.getRoom(roomId);
+        if (room != null) {
+            room.removeUser(username);
+            if (room.isEmpty()) {
+                chatRoomManager.deleteRoom(roomId);
+            }
         }
-        room.addUser(message.getSender());
-        message.setType(ChatMessage.MessageType.JOIN);
-        messagingTemplate.convertAndSend("/topic/" + message.getRoomId(), message);
+
+        message.setType(ChatMessage.MessageType.LEAVE);
+        messagingTemplate.convertAndSend("/queue/" + roomId, message);
     }
 }
-

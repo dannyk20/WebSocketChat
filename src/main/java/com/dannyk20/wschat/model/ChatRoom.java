@@ -16,12 +16,19 @@ public class ChatRoom {
         this.id = id;
     }
 
-    public void addUser(String username) {
-        users.add(username);
+    public boolean addUser (String username) {
+        if(users.size()>=2){
+            return false;
+        }
+        return users.add(username);
     }
 
     public void removeUser(String username) {
         users.remove(username);
+    }
+
+    public boolean isFull() {
+        return users.size() >= 2;
     }
 
     public boolean isEmpty() {
